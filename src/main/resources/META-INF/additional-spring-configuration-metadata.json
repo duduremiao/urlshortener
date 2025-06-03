@@ -1,0 +1,9 @@
+{
+  "properties": [
+    {
+      "name": "app.base-url",
+      "type": "java.lang.String",
+      "description": "Base URL usada para gerar os links encurtados"
+    }
+  ]
+}

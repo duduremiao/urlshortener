@@ -1,0 +1,106 @@
+---
+server:
+  port: 5000
+spring:
+  application:
+    name: url-shortener
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:mem:testdb}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:password}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.H2Dialect}
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  cache:
+    type: redis
+    redis:
+      time-to-live: 24h
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+app:
+  base-url: ${BASE_URL:http://localhost:5000}
+logging:
+  level:
+    com.urlshortener: INFO
+    org.springframework.cache: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: production
+  datasource:
+    url: jdbc:postgresql://${RDS_HOSTNAME:localhost}:${RDS_PORT:5432}/${RDS_DB_NAME:urlshortener}
+    username: ${RDS_USERNAME:postgres}
+    password: ${RDS_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+  data:
+    redis:
+      host: ${ELASTICACHE_ENDPOINT:localhost}
+      port: ${ELASTICACHE_PORT:6379}
+  h2:
+    console:
+      enabled: false
+app:
+  base-url: ${BASE_URL:https://yourdomain.com}
+logging:
+  level:
+    com.urlshortener: INFO
+    org.springframework.cache: WARN
+
+---
+spring:
+  config:
+    activate:
+      on-profile: development
+  datasource:
+    url: jdbc:h2:mem:devdb
+    username: sa
+    password: password
+  jpa:
+    show-sql: true
+app:
+  base-url: ${BASE_URL:http://localhost:5000}
+logging:
+  level:
+    com.urlshortener: DEBUG
+    org.springframework.cache: DEBUG
