@@ -1,0 +1,3 @@
+# .ebignore
+target/
+!target/cloud-url-shortener-*.jar

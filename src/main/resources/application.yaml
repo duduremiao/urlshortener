@@ -1,6 +1,6 @@
 ---
 server:
-  port: 5000
+  port: 8080
 spring:
   application:
     name: url-shortener
@@ -49,7 +49,7 @@ management:
       export:
         enabled: true
 app:
-  base-url: ${BASE_URL:http://localhost:5000}
+  base-url: ${BASE_URL:http://localhost:8080}
 logging:
   level:
     com.urlshortener: INFO
@@ -80,6 +80,8 @@ spring:
   h2:
     console:
       enabled: false
+server:
+  port: 8080
 app:
   base-url: ${BASE_URL:https://yourdomain.com}
 logging:
@@ -99,7 +101,7 @@ spring:
   jpa:
     show-sql: true
 app:
-  base-url: ${BASE_URL:http://localhost:5000}
+  base-url: ${BASE_URL:http://localhost:8080}
 logging:
   level:
     com.urlshortener: DEBUG
