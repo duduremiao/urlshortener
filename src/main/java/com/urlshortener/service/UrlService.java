@@ -47,8 +47,8 @@ public class UrlService {
             urlEntity.setExpiresAt(LocalDateTime.now().plusDays(request.getExpirationDays()));
         }
 
-        // Salvar no banco
-        UrlEntity savedEntity = urlRepository.save(savedEntity);
+        // Salvar no banco - FIXED: changed savedEntity to urlEntity
+        UrlEntity savedEntity = urlRepository.save(urlEntity);
 
         // Tentar cachear no Redis (não falha se Redis estiver indisponível)
         cacheUrl(shortCode, request.getOriginalUrl());
