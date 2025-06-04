@@ -29,7 +29,6 @@ public class UrlService {
     private static final int SHORT_CODE_LENGTH = 6;
     private static final String CACHE_PREFIX = "url:";
     
-// ...existing code...
     @Transactional
     public UrlEntity shortenUrl(ShortenUrlRequest request, String clientIp) {
         // Validar URL
@@ -49,22 +48,25 @@ public class UrlService {
         }
 
         // Salvar no banco
-        UrlEntity savedEntity = urlRepository.save(urlEntity);
+        UrlEntity savedEntity = urlRepository.save(savedEntity);
 
-        // Cachear no Redis
+        // Tentar cachear no Redis (não falha se Redis estiver indisponível)
         cacheUrl(shortCode, request.getOriginalUrl());
 
         return savedEntity;
     }
 
-    
     @Transactional
     public String getOriginalUrl(String shortCode) {
-        // Tentar buscar no cache primeiro
+        // Tentar buscar no cache primeiro (falha graciosamente)
         String cachedUrl = getCachedUrl(shortCode);
         if (cachedUrl != null) {
             // Incrementar contador assincronamente
-            urlRepository.incrementClickCount(shortCode);
+            try {
+                urlRepository.incrementClickCount(shortCode);
+            } catch (Exception e) {
+                System.err.println("Erro ao incrementar contador: " + e.getMessage());
+            }
             return cachedUrl;
         }
         
@@ -88,7 +90,7 @@ public class UrlService {
         entity.incrementClickCount();
         urlRepository.save(entity);
         
-        // Atualizar cache
+        // Tentar atualizar cache
         cacheUrl(shortCode, entity.getOriginalUrl());
         
         return entity.getOriginalUrl();
@@ -149,8 +151,8 @@ public class UrlService {
                 TimeUnit.HOURS
             );
         } catch (Exception e) {
-            // Log erro mas não falha a operação
-            System.err.println("Erro ao cachear URL: " + e.getMessage());
+            // Log erro mas não falha a operação - Redis é opcional
+            System.err.println("Redis indisponível, continuando sem cache: " + e.getMessage());
         }
     }
     
@@ -158,23 +160,38 @@ public class UrlService {
         try {
             return redisTemplate.opsForValue().get(CACHE_PREFIX + shortCode);
         } catch (Exception e) {
-            // Log erro mas não falha a operação
-            System.err.println("Erro ao buscar URL no cache: " + e.getMessage());
+            // Log erro mas não falha a operação - Redis é opcional
+            System.err.println("Redis indisponível para leitura: " + e.getMessage());
             return null;
         }
     }
     
     public long getTotalActiveUrls() {
-        return urlRepository.countActiveUrls();
+        try {
+            return urlRepository.countActiveUrls();
+        } catch (Exception e) {
+            System.err.println("Erro ao contar URLs ativas: " + e.getMessage());
+            return 0L;
+        }
     }
     
     public Long getTotalClicks() {
-        Long total = urlRepository.getTotalClicks();
-        return total != null ? total : 0L;
+        try {
+            Long total = urlRepository.getTotalClicks();
+            return total != null ? total : 0L;
+        } catch (Exception e) {
+            System.err.println("Erro ao contar cliques: " + e.getMessage());
+            return 0L;
+        }
     }
     
     @Transactional
     public int cleanupExpiredUrls() {
-        return urlRepository.deactivateExpiredUrls(LocalDateTime.now());
+        try {
+            return urlRepository.deactivateExpiredUrls(LocalDateTime.now());
+        } catch (Exception e) {
+            System.err.println("Erro na limpeza de URLs: " + e.getMessage());
+            return 0;
+        }
     }
 }

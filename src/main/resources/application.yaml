@@ -1,6 +1,7 @@
 ---
 server:
   port: 8080
+  shutdown: graceful
 spring:
   application:
     name: url-shortener
@@ -9,6 +10,10 @@ spring:
     username: ${DATABASE_USERNAME:sa}
     password: ${DATABASE_PASSWORD:password}
     driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 20000
   jpa:
     hibernate:
       ddl-auto: update
@@ -26,37 +31,41 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
-      timeout: 2000ms
+      timeout: 5000ms
       lettuce:
         pool:
           max-active: 8
           max-idle: 8
           min-idle: 0
+        shutdown-timeout: 100ms
   cache:
     type: redis
     redis:
       time-to-live: 24h
+      cache-null-values: false
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics
   endpoint:
     health:
       show-details: always
-  prometheus:
-    metrics:
-      export:
-        enabled: true
+      show-components: always
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
 app:
   base-url: ${BASE_URL:http://localhost:8080}
 logging:
   level:
     com.urlshortener: INFO
-    org.springframework.cache: DEBUG
+    org.springframework.cache: INFO
+    org.springframework.data.redis: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 ---
 spring:
@@ -64,30 +73,47 @@ spring:
     activate:
       on-profile: production
   datasource:
-    url: jdbc:postgresql://${RDS_HOSTNAME:localhost}:${RDS_PORT:5432}/${RDS_DB_NAME:urlshortener}
-    username: ${RDS_USERNAME:postgres}
-    password: ${RDS_PASSWORD:password}
-    driver-class-name: org.postgresql.Driver
+    url: ${DATABASE_URL:jdbc:h2:mem:proddb}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:password}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
   jpa:
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.H2Dialect}
     show-sql: false
   data:
     redis:
-      host: ${ELASTICACHE_ENDPOINT:localhost}
-      port: ${ELASTICACHE_PORT:6379}
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 5000ms
+      # Configuração para falhar graciosamente se Redis não estiver disponível
+      lettuce:
+        pool:
+          max-active: 4
+          max-idle: 2
+          min-idle: 0
   h2:
     console:
       enabled: false
+  cache:
+    type: redis
+    redis:
+      time-to-live: 24h
 server:
   port: 8080
+  shutdown: graceful
 app:
-  base-url: ${BASE_URL:https://yourdomain.com}
+  base-url: ${BASE_URL:http://url-shortener-env.eba-rfv3b5xr.sa-east-1.elasticbeanstalk.com}
 logging:
   level:
     com.urlshortener: INFO
     org.springframework.cache: WARN
+    org.springframework.data.redis: WARN
 
 ---
 spring:
